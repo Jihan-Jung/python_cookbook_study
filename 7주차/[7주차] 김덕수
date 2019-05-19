@@ -1,0 +1,556 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 발표 소단원 리스트"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "9-15, 9-19,9-23, 10-2, 10-6, 10-10, 10-14"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 전체 요약자료"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- 9-15 : class definition이 optional arguments를 지원하도록 허용하는 metaclass를 정의하고 싶을 떄\n",
+    "- 9-19 : class의 일부분을 instance가 만들어질 때가 아니라 class가 define 되었을 때 초기화 하고 싶다면 메타클래스를 이용합니다.\n",
+    "- 9-23 : exec() 함수를 이용해 code 조각을 실행시켰는데, 나중에 결과를 사용하려고 보니까 없을 때\n",
+    "- 10-2 : user가 'from module import *' 를 사용할 때, module에서 export 되는 목록을 지정해주고 싶다면\n",
+    "- 10-6 : 이미 loaded된 모듈의 source코드가 바뀌어서 다시 reload 하고싶을 때, imp.reload()를 사용합니다.\n",
+    "- 10-10 : import하고싶은 모듈의 이름이 있는데, string일 때\n",
+    "- 10-14 : virtual environment 만들기!"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 9-15) Defining a Metaclass That Takes Optional Arguments \n",
+    "- class definition이 optional arguments를 지원하도록 허용하는 metaclass를 정의하고 싶을 떄\n",
+    "- 특히 type creation 과정중에 벌어지는 어떤 processing을 control하고싶을 때"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- 파이썬에서 클래스를 정의할 때, metaclass를 지정하는 keyword argument가 있습니다. 예를 들면 Abstract base classes를 metaclass로 갖는 클래스는 아래와 같이 만듭니다."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from abc import ABCMeta, abstractmethod\n",
+    "\n",
+    "class IStream(metaclass=ABCMeta):  \n",
+    "    @abstractmethod \n",
+    "    def read(self, maxsize=None):  \n",
+    "        pass\n",
+    "    \n",
+    "    @abstractmethod  \n",
+    "    def write(self, data):   \n",
+    "        pass "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- 하지만 custum metaclass를 지정할 때에는 addtional keyword arguemnts가 지원됩니다. 그러니까, 아래와 같이 추가할 수 있습니다."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class Spam(metaclass=MyMeta, debug=True, synchronize=True): \n",
+    "    ..."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- 위처럼 keyword argument를 추가하려면 메타클래스를 정의할 때 아래와 같이 __ prepare __ (), __ new __ (), __ init __ () 메소드에 keword-only argument를 사용해 아래와 같이 정의해주었어야 합니다."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class MyMeta(type):\n",
+    "    # Optional    \n",
+    "    @classmethod  \n",
+    "    def __prepare__(cls, name, bases, *, debug=False, synchronize=False):  \n",
+    "        # Custom processing \n",
+    "         #... \n",
+    "        return super().__prepare__(name, bases)\n",
+    "    \n",
+    "    # Required  \n",
+    "    def __new__(cls, name, bases, ns, *, debug=False, synchronize=False):  \n",
+    "        # Custom processing   \n",
+    "        #... \n",
+    "        return super().__new__(cls, name, bases, ns)\n",
+    "    \n",
+    "    # Required   \n",
+    "    def __init__(self, name, bases, ns, *, debug=False, synchronize=False):\n",
+    "        # Custom processing\n",
+    "        # ... \n",
+    "        super().__init__(name, bases, ns)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- metaclass에 위와 같이 addtional keyword argument를 추가하려면 class creation을 포함한 모든 step을 이해하고 있어야 합니다. 왜냐면 extra arguments가 연관된 모든 method에 전달되기 때문입니다.\n",
+    "- class가 만들어질 때 메소드가 호출되는 순서는 __ prepare __ (), __ new __ (), __ init __ () 순\n",
+    "- 보통 metaclass를 만들 때 대개 __ new __ ()나 __ init __ () 둘 중 하나만 정의하는데, key word argument를 정의하려면 둘 다 정의해야 하고, 반드시 compatible signatures로 주어져야 합니다."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- 메타클래스란? 참고 링크 (https://tech.ssut.me/understanding-python-metaclasses/)\n",
+    "- 매직 메소드 관련 참고 링크 (https://corikachu.github.io/articles/python/python-magic-method)\n",
+    "- __ prepare __(metacls, name, bases, **kwds): 메타 클래스 네임스페이스에 대한 dictionary를 만듭니다. 메타 클래스가 이 속성이 없다면 빈 dict()로 초기화 됩니다. dictionary나 아니면 다른 mapping object를 리턴하는 것!"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 9-19)  Initializing Class Members at Definition Time \n",
+    "- class의 일부분을 instance가 만들어질 때가 아니라 class가 define 되었을 때 초기화 하고 싶다면 메타클래스를 이용합니다."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- mataclass는 class definition이 있는 지점에서 triggered 되는데, 이 때 additional step을 수행할 수 있습니다."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import operator\n",
+    "\n",
+    "class StructTupleMeta(type):    \n",
+    "    def __init__(cls, *args, **kwargs):        \n",
+    "        super().__init__(*args, **kwargs)        \n",
+    "        for n, name in enumerate(cls._fields):\n",
+    "            setattr(cls, name, property(operator.itemgetter(n)))\n",
+    "            \n",
+    "class StructTuple(tuple, metaclass=StructTupleMeta):\n",
+    "    _fields = [] \n",
+    "    def __new__(cls, *args):\n",
+    "        if len(args) != len(cls._fields):\n",
+    "            raise ValueError('{} arguments required'.format(len(cls._fields)))\n",
+    "        return super().__new__(cls,args) \n",
+    "    \n",
+    "class Stock(StructTuple): \n",
+    "    _fields = ['name', 'shares', 'price']\n",
+    "    \n",
+    "class Point(StructTuple):  \n",
+    "    _fields = ['x', 'y'] "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "('ACME', 50, 91.1)"
+      ]
+     },
+     "execution_count": 13,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "s = Stock('ACME', 50, 91.1)\n",
+    "s"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'ACME'"
+      ]
+     },
+     "execution_count": 14,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "s[0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'ACME'"
+      ]
+     },
+     "execution_count": 15,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "s.name"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "4555.0"
+      ]
+     },
+     "execution_count": 17,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "s.shares * s.price"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "AttributeError",
+     "evalue": "can't set attribute",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[1;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[1;31mAttributeError\u001b[0m                            Traceback (most recent call last)",
+      "\u001b[1;32m<ipython-input-18-4917879e547b>\u001b[0m in \u001b[0;36m<module>\u001b[1;34m\u001b[0m\n\u001b[1;32m----> 1\u001b[1;33m \u001b[0ms\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mshares\u001b[0m \u001b[1;33m=\u001b[0m \u001b[1;36m23\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m",
+      "\u001b[1;31mAttributeError\u001b[0m: can't set attribute"
+     ]
+    }
+   ],
+   "source": [
+    "s.shares = 23"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 9-23) Executing Code with Local Side Effects\n",
+    "- exec() 함수를 이용해 code 조각을 실행시켰는데, 나중에 결과를 사용하려고 보니까 없을 때"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "14\n"
+     ]
+    }
+   ],
+   "source": [
+    "a = 13\n",
+    "exec('c = a + 1')\n",
+    "print(c)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- 위와 같이 사용한다. 그런데, 아래처럼 함수에서 부르는 경우 에러가 NameError가 뜬다."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def test():\n",
+    "    a = 13\n",
+    "    exec('d = a + 1')\n",
+    "    print(d) "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 29,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'd' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[1;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[1;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+      "\u001b[1;32m<ipython-input-29-fbd55f77ab7c>\u001b[0m in \u001b[0;36m<module>\u001b[1;34m\u001b[0m\n\u001b[1;32m----> 1\u001b[1;33m \u001b[0mtest\u001b[0m\u001b[1;33m(\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m",
+      "\u001b[1;32m<ipython-input-28-0e7bc401e714>\u001b[0m in \u001b[0;36mtest\u001b[1;34m()\u001b[0m\n\u001b[0;32m      2\u001b[0m     \u001b[0ma\u001b[0m \u001b[1;33m=\u001b[0m \u001b[1;36m13\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m      3\u001b[0m     \u001b[0mexec\u001b[0m\u001b[1;33m(\u001b[0m\u001b[1;34m'd = a + 1'\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m----> 4\u001b[1;33m     \u001b[0mprint\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0md\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m",
+      "\u001b[1;31mNameError\u001b[0m: name 'd' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "test()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- 이런 상황을 해결하려면 locals() 함수를 exec() 호출 전에 호출해서 local variables의 dictinary를 얻어주어야 합니다."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "14\n"
+     ]
+    }
+   ],
+   "source": [
+    "def test(): \n",
+    "    a = 13 \n",
+    "    loc = locals() \n",
+    "    exec('e = a + 1')\n",
+    "    e = loc['e'] \n",
+    "    print(b) \n",
+    "\n",
+    "test()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 10-2) Controlling the Import of Everything  \n",
+    "- user가 'from module import *' 를 사용할 때, module에서 export 되는 목록을 지정해주고 싶다면\n",
+    "- __ all __ 이라는 variable을 선언하면 거기에 들어가있는 이름들만 exported 됩니다."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# somemodule.py\n",
+    "def spam():\n",
+    "    pass\n",
+    "\n",
+    "def grok():\n",
+    "    pass\n",
+    "\n",
+    "blah = 42\n",
+    "# Only export 'spam' and 'grok' \n",
+    "__all__ = ['spam', 'grok']"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- 만약에 __ all __ 을 작성 안하면 이름 앞에 underscore가 없는 모든 것들을 다 export하고, 비어있는 리스트로 작성하면 아무것도 export 안 됩니다"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 10-6) Reloading Modules\n",
+    "- 이미 loaded된 모듈의 source코드가 바뀌어서 다시 reload 하고싶을 때, imp.reload()를 사용합니다."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    ">>> import spam \n",
+    ">>> import imp\n",
+    ">>> imp.reload(spam) \n",
+    "<module 'spam' from './spam.py'> >>> "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 10-10)  Importing Modules Using a Name Given in a String \n",
+    "- import하고싶은 모듈의 이름이 있는데, string일 때\n",
+    "- import command로 불러오고 싶다. 그 때 importlib.import_module() 함수를 사용한다."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import importlib\n",
+    ">>> math = importlib.import_module('math') \n",
+    ">>> math.sin(2) 0.9092974268256817 \n",
+    ">>> mod = importlib.import_module('urllib.request') \n",
+    ">>> u = mod.urlopen('http://www.python.org')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- importlib.import_module() 함수는 import와 똑같은 역할을 하지만, module object를 return해줍니다. 그러면 변수에 넣고 일반적인 모듈을 import 했을 때처럼 사용하시면 됩니다."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 10-14) Creating a New Python Environment \n",
+    "- module과 package들을 설치할 수 있는 새로운 python environment를 만들고 싶은데, 새로운 python copy를 설치함으로 인해 시스템에 영향을 주는 일은 피하고 싶을 때\n",
+    "- pyvenv 명령어로 virtual environment를 만들 수 있습니다. 이 command는 python interpreter가 설치된 디렉토리와 같은 디렉토리에 설치되어 있거나, 아니면 Scripts 디렉토리에 있을수도 있습니다."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- virtual environment를 만들면 새로운 디렉토리가 하나 생성됩니다."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "bash % pyvenv Spam    \n",
+    "bash %"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "bash % cd Spam \n",
+    "\n",
+    "bash % ls  \n",
+    "bin               include             lib           pyvenv.cfg \n",
+    "\n",
+    "bash % "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "bash % Spam/bin/python3 \n",
+    "\n",
+    "Python 3.3.0 (default, Oct  6 2012, 15:45:22)  \n",
+    "[GCC 4.2.1 (Apple Inc. build 5666) (dot 3)] on darwin \n",
+    "Type \"help\", \"copyright\", \"credits\" or \"license\" for more information.\n",
+    ">>> from pprint import pprint   \n",
+    ">>> import sys  \n",
+    ">>> pprint(sys.path)\n",
+    "['',\n",
+    " '/usr/local/lib/python33.zip',\n",
+    " '/usr/local/lib/python3.3',\n",
+    " '/usr/local/lib/python3.3/plat-darwin',\n",
+    " '/usr/local/lib/python3.3/lib-dynload',\n",
+    " '/Users/beazley/Spam/lib/python3.3/site-packages'\n",
+    " ]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "- 가상 환경에서는새로 만든 디렉토리의 bin에 설치된 python interpreter를 사용합니다.\n",
+    "- site-packages 디렉토리도 하나 새로 생성되는데, 여기에 third-party package들을 설치해야 합니다. 바깥에 있는 system의 site-package에다 하면 안됨!"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.1"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
